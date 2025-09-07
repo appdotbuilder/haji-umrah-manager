@@ -1,26 +1,51 @@
-import { type PackageType, type CreatePackageTypeInput } from '../schema';
+import { db } from '../db';
+import { packageTypesTable } from '../db/schema';
+import { type CreatePackageTypeInput, type PackageType } from '../schema';
+import { eq } from 'drizzle-orm';
 
-export async function createPackageType(input: CreatePackageTypeInput): Promise<PackageType> {
-  // This is a placeholder declaration! Real code should be implemented here.
-  // The goal of this handler is to create a new package type record.
-  return Promise.resolve({
-    id: 1,
-    type_name: input.type_name,
-    description: input.description,
-    is_active: true,
-    created_at: new Date(),
-    updated_at: new Date()
-  });
-}
+export const createPackageType = async (input: CreatePackageTypeInput): Promise<PackageType> => {
+  try {
+    const result = await db.insert(packageTypesTable)
+      .values({
+        type_name: input.type_name,
+        description: input.description
+      })
+      .returning()
+      .execute();
 
-export async function getPackageTypes(): Promise<PackageType[]> {
-  // This is a placeholder declaration! Real code should be implemented here.
-  // The goal of this handler is to fetch all package types from the database.
-  return Promise.resolve([]);
-}
+    const packageType = result[0];
+    return {
+      ...packageType
+    };
+  } catch (error) {
+    console.error('Package type creation failed:', error);
+    throw error;
+  }
+};
 
-export async function getPackageTypeById(id: number): Promise<PackageType | null> {
-  // This is a placeholder declaration! Real code should be implemented here.
-  // The goal of this handler is to fetch a specific package type by ID.
-  return Promise.resolve(null);
-}
+export const getPackageTypes = async (): Promise<PackageType[]> => {
+  try {
+    const results = await db.select()
+      .from(packageTypesTable)
+      .execute();
+
+    return results;
+  } catch (error) {
+    console.error('Failed to fetch package types:', error);
+    throw error;
+  }
+};
+
+export const getPackageTypeById = async (id: number): Promise<PackageType | null> => {
+  try {
+    const results = await db.select()
+      .from(packageTypesTable)
+      .where(eq(packageTypesTable.id, id))
+      .execute();
+
+    return results.length > 0 ? results[0] : null;
+  } catch (error) {
+    console.error('Failed to fetch package type by ID:', error);
+    throw error;
+  }
+};

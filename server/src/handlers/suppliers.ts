@@ -1,30 +1,53 @@
+import { db } from '../db';
+import { suppliersTable } from '../db/schema';
 import { type Supplier, type CreateSupplierInput } from '../schema';
+import { eq } from 'drizzle-orm';
 
 export async function createSupplier(input: CreateSupplierInput): Promise<Supplier> {
-  // This is a placeholder declaration! Real code should be implemented here.
-  // The goal of this handler is to create a new supplier record.
-  return Promise.resolve({
-    id: 1,
-    name: input.name,
-    contact_person: input.contact_person,
-    email: input.email,
-    phone: input.phone,
-    address: input.address,
-    supplier_type: input.supplier_type,
-    is_active: true,
-    created_at: new Date(),
-    updated_at: new Date()
-  });
+  try {
+    // Insert supplier record
+    const result = await db.insert(suppliersTable)
+      .values({
+        name: input.name,
+        contact_person: input.contact_person,
+        email: input.email,
+        phone: input.phone,
+        address: input.address,
+        supplier_type: input.supplier_type
+      })
+      .returning()
+      .execute();
+
+    return result[0];
+  } catch (error) {
+    console.error('Supplier creation failed:', error);
+    throw error;
+  }
 }
 
 export async function getSuppliers(): Promise<Supplier[]> {
-  // This is a placeholder declaration! Real code should be implemented here.
-  // The goal of this handler is to fetch all suppliers from the database.
-  return Promise.resolve([]);
+  try {
+    const suppliers = await db.select()
+      .from(suppliersTable)
+      .execute();
+
+    return suppliers;
+  } catch (error) {
+    console.error('Failed to fetch suppliers:', error);
+    throw error;
+  }
 }
 
 export async function getSupplierById(id: number): Promise<Supplier | null> {
-  // This is a placeholder declaration! Real code should be implemented here.
-  // The goal of this handler is to fetch a specific supplier by ID.
-  return Promise.resolve(null);
+  try {
+    const suppliers = await db.select()
+      .from(suppliersTable)
+      .where(eq(suppliersTable.id, id))
+      .execute();
+
+    return suppliers[0] || null;
+  } catch (error) {
+    console.error('Failed to fetch supplier by ID:', error);
+    throw error;
+  }
 }

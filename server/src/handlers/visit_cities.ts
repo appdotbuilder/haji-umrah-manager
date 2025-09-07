@@ -1,27 +1,49 @@
+import { db } from '../db';
+import { visitCitiesTable } from '../db/schema';
 import { type VisitCity, type CreateVisitCityInput } from '../schema';
+import { eq } from 'drizzle-orm';
 
 export async function createVisitCity(input: CreateVisitCityInput): Promise<VisitCity> {
-  // This is a placeholder declaration! Real code should be implemented here.
-  // The goal of this handler is to create a new visit city record.
-  return Promise.resolve({
-    id: 1,
-    city_name: input.city_name,
-    country: input.country,
-    description: input.description,
-    is_active: true,
-    created_at: new Date(),
-    updated_at: new Date()
-  });
+  try {
+    const result = await db.insert(visitCitiesTable)
+      .values({
+        city_name: input.city_name,
+        country: input.country,
+        description: input.description
+      })
+      .returning()
+      .execute();
+
+    return result[0];
+  } catch (error) {
+    console.error('Visit city creation failed:', error);
+    throw error;
+  }
 }
 
 export async function getVisitCities(): Promise<VisitCity[]> {
-  // This is a placeholder declaration! Real code should be implemented here.
-  // The goal of this handler is to fetch all visit cities from the database.
-  return Promise.resolve([]);
+  try {
+    const result = await db.select()
+      .from(visitCitiesTable)
+      .execute();
+
+    return result;
+  } catch (error) {
+    console.error('Failed to fetch visit cities:', error);
+    throw error;
+  }
 }
 
 export async function getVisitCityById(id: number): Promise<VisitCity | null> {
-  // This is a placeholder declaration! Real code should be implemented here.
-  // The goal of this handler is to fetch a specific visit city by ID.
-  return Promise.resolve(null);
+  try {
+    const result = await db.select()
+      .from(visitCitiesTable)
+      .where(eq(visitCitiesTable.id, id))
+      .execute();
+
+    return result[0] || null;
+  } catch (error) {
+    console.error('Failed to fetch visit city by ID:', error);
+    throw error;
+  }
 }

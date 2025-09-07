@@ -1,33 +1,66 @@
+import { db } from '../db';
+import { travelIdentityTable } from '../db/schema';
 import { type TravelIdentity, type UpdateTravelIdentityInput } from '../schema';
+import { eq } from 'drizzle-orm';
 
-export async function getTravelIdentity(): Promise<TravelIdentity | null> {
-  // This is a placeholder declaration! Real code should be implemented here.
-  // The goal of this handler is to fetch the travel identity settings.
-  return Promise.resolve({
-    id: 1,
-    travel_name: 'Al-Haramain Travel',
-    logo_url: null,
-    address: '123 Main Street, City',
-    email: 'info@alharamaintravel.com',
-    phone: '+1-234-567-8900',
-    theme: 'purple' as const,
-    created_at: new Date(),
-    updated_at: new Date()
-  });
-}
+export const getTravelIdentity = async (): Promise<TravelIdentity | null> => {
+  try {
+    const results = await db.select()
+      .from(travelIdentityTable)
+      .limit(1)
+      .execute();
 
-export async function updateTravelIdentity(input: UpdateTravelIdentityInput): Promise<TravelIdentity> {
-  // This is a placeholder declaration! Real code should be implemented here.
-  // The goal of this handler is to update the travel identity settings.
-  return Promise.resolve({
-    id: 1,
-    travel_name: input.travel_name || 'Al-Haramain Travel',
-    logo_url: input.logo_url || null,
-    address: input.address || '123 Main Street, City',
-    email: input.email || 'info@alharamaintravel.com',
-    phone: input.phone || '+1-234-567-8900',
-    theme: input.theme || 'purple',
-    created_at: new Date(),
-    updated_at: new Date()
-  });
-}
+    if (results.length === 0) {
+      return null;
+    }
+
+    return results[0];
+  } catch (error) {
+    console.error('Travel identity fetch failed:', error);
+    throw error;
+  }
+};
+
+export const updateTravelIdentity = async (input: UpdateTravelIdentityInput): Promise<TravelIdentity> => {
+  try {
+    // First, check if a travel identity record exists
+    const existing = await getTravelIdentity();
+
+    if (!existing) {
+      // Create new travel identity record with required fields
+      const result = await db.insert(travelIdentityTable)
+        .values({
+          travel_name: input.travel_name || 'Default Travel Agency',
+          logo_url: input.logo_url || null,
+          address: input.address || 'Default Address',
+          email: input.email || 'contact@travelagency.com',
+          phone: input.phone || '+1-000-000-0000',
+          theme: input.theme || 'purple'
+        })
+        .returning()
+        .execute();
+
+      return result[0];
+    }
+
+    // Update existing record
+    const result = await db.update(travelIdentityTable)
+      .set({
+        ...(input.travel_name !== undefined && { travel_name: input.travel_name }),
+        ...(input.logo_url !== undefined && { logo_url: input.logo_url }),
+        ...(input.address !== undefined && { address: input.address }),
+        ...(input.email !== undefined && { email: input.email }),
+        ...(input.phone !== undefined && { phone: input.phone }),
+        ...(input.theme !== undefined && { theme: input.theme }),
+        updated_at: new Date()
+      })
+      .where(eq(travelIdentityTable.id, existing.id))
+      .returning()
+      .execute();
+
+    return result[0];
+  } catch (error) {
+    console.error('Travel identity update failed:', error);
+    throw error;
+  }
+};

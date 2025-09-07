@@ -1,29 +1,54 @@
+import { db } from '../db';
+import { banksTable } from '../db/schema';
 import { type Bank, type CreateBankInput } from '../schema';
+import { eq } from 'drizzle-orm';
 
 export async function createBank(input: CreateBankInput): Promise<Bank> {
-  // This is a placeholder declaration! Real code should be implemented here.
-  // The goal of this handler is to create a new bank record.
-  return Promise.resolve({
-    id: 1,
-    bank_name: input.bank_name,
-    account_number: input.account_number,
-    account_holder_name: input.account_holder_name,
-    branch: input.branch,
-    swift_code: input.swift_code,
-    is_active: true,
-    created_at: new Date(),
-    updated_at: new Date()
-  });
+  try {
+    // Insert bank record
+    const result = await db.insert(banksTable)
+      .values({
+        bank_name: input.bank_name,
+        account_number: input.account_number,
+        account_holder_name: input.account_holder_name,
+        branch: input.branch,
+        swift_code: input.swift_code
+      })
+      .returning()
+      .execute();
+
+    return result[0];
+  } catch (error) {
+    console.error('Bank creation failed:', error);
+    throw error;
+  }
 }
 
 export async function getBanks(): Promise<Bank[]> {
-  // This is a placeholder declaration! Real code should be implemented here.
-  // The goal of this handler is to fetch all banks from the database.
-  return Promise.resolve([]);
+  try {
+    // Fetch all banks
+    const result = await db.select()
+      .from(banksTable)
+      .execute();
+
+    return result;
+  } catch (error) {
+    console.error('Failed to fetch banks:', error);
+    throw error;
+  }
 }
 
 export async function getBankById(id: number): Promise<Bank | null> {
-  // This is a placeholder declaration! Real code should be implemented here.
-  // The goal of this handler is to fetch a specific bank by ID.
-  return Promise.resolve(null);
+  try {
+    // Fetch specific bank by ID
+    const result = await db.select()
+      .from(banksTable)
+      .where(eq(banksTable.id, id))
+      .execute();
+
+    return result[0] || null;
+  } catch (error) {
+    console.error('Failed to fetch bank by ID:', error);
+    throw error;
+  }
 }

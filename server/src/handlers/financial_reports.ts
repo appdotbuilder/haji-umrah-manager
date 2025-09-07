@@ -1,20 +1,88 @@
+import { db } from '../db';
+import { financialTransactionsTable, transactionEntriesTable, chartOfAccountsTable } from '../db/schema';
 import { type JournalEntry, type TrialBalanceEntry, type DateRangeFilter } from '../schema';
+import { eq, and, gte, lte, desc, SQL } from 'drizzle-orm';
 
 export async function getJournalReport(filter: DateRangeFilter): Promise<JournalEntry[]> {
-  // This is a placeholder declaration! Real code should be implemented here.
-  // The goal of this handler is to generate journal report with all transaction entries.
-  return Promise.resolve([
-    {
-      transaction_id: 1,
-      transaction_date: new Date('2024-01-15'),
-      transaction_reference: 'TXN-001',
-      account_name: 'Cash',
-      account_code: 'ACC-001',
-      debit_amount: 1000,
-      credit_amount: 0,
-      description: 'Payment received from customer'
+  try {
+    // Apply date filters conditionally
+    const conditions: SQL<unknown>[] = [];
+
+    if (filter.start_date) {
+      conditions.push(gte(financialTransactionsTable.transaction_date, filter.start_date));
     }
-  ]);
+
+    if (filter.end_date) {
+      conditions.push(lte(financialTransactionsTable.transaction_date, filter.end_date));
+    }
+
+    // Build query based on whether we have conditions or not
+    let results;
+    
+    if (conditions.length > 0) {
+      const whereCondition = conditions.length === 1 ? conditions[0] : and(...conditions);
+      
+      results = await db.select({
+        transaction_id: transactionEntriesTable.transaction_id,
+        transaction_date: financialTransactionsTable.transaction_date,
+        transaction_reference: financialTransactionsTable.transaction_reference,
+        account_name: chartOfAccountsTable.account_name,
+        account_code: chartOfAccountsTable.account_code,
+        debit_amount: transactionEntriesTable.debit_amount,
+        credit_amount: transactionEntriesTable.credit_amount,
+        description: transactionEntriesTable.description
+      })
+      .from(transactionEntriesTable)
+      .innerJoin(
+        financialTransactionsTable,
+        eq(transactionEntriesTable.transaction_id, financialTransactionsTable.id)
+      )
+      .innerJoin(
+        chartOfAccountsTable,
+        eq(transactionEntriesTable.account_id, chartOfAccountsTable.id)
+      )
+      .where(whereCondition)
+      .orderBy(desc(financialTransactionsTable.transaction_date), financialTransactionsTable.transaction_reference)
+      .execute();
+    } else {
+      results = await db.select({
+        transaction_id: transactionEntriesTable.transaction_id,
+        transaction_date: financialTransactionsTable.transaction_date,
+        transaction_reference: financialTransactionsTable.transaction_reference,
+        account_name: chartOfAccountsTable.account_name,
+        account_code: chartOfAccountsTable.account_code,
+        debit_amount: transactionEntriesTable.debit_amount,
+        credit_amount: transactionEntriesTable.credit_amount,
+        description: transactionEntriesTable.description
+      })
+      .from(transactionEntriesTable)
+      .innerJoin(
+        financialTransactionsTable,
+        eq(transactionEntriesTable.transaction_id, financialTransactionsTable.id)
+      )
+      .innerJoin(
+        chartOfAccountsTable,
+        eq(transactionEntriesTable.account_id, chartOfAccountsTable.id)
+      )
+      .orderBy(desc(financialTransactionsTable.transaction_date), financialTransactionsTable.transaction_reference)
+      .execute();
+    }
+
+    // Convert numeric fields to numbers and ensure proper types
+    return results.map(result => ({
+      transaction_id: result.transaction_id,
+      transaction_date: result.transaction_date,
+      transaction_reference: result.transaction_reference,
+      account_name: result.account_name,
+      account_code: result.account_code,
+      debit_amount: parseFloat(result.debit_amount),
+      credit_amount: parseFloat(result.credit_amount),
+      description: result.description || ''
+    }));
+  } catch (error) {
+    console.error('Journal report generation failed:', error);
+    throw error;
+  }
 }
 
 export async function getGeneralLedger(accountId: number, filter: DateRangeFilter): Promise<JournalEntry[]> {

@@ -1,27 +1,50 @@
+import { db } from '../db';
+import { airlinesTable } from '../db/schema';
+import { eq } from 'drizzle-orm';
 import { type Airline, type CreateAirlineInput } from '../schema';
 
-export async function createAirline(input: CreateAirlineInput): Promise<Airline> {
-  // This is a placeholder declaration! Real code should be implemented here.
-  // The goal of this handler is to create a new airline record.
-  return Promise.resolve({
-    id: 1,
-    airline_name: input.airline_name,
-    airline_code: input.airline_code,
-    contact_info: input.contact_info,
-    is_active: true,
-    created_at: new Date(),
-    updated_at: new Date()
-  });
-}
+export const createAirline = async (input: CreateAirlineInput): Promise<Airline> => {
+  try {
+    // Insert airline record
+    const result = await db.insert(airlinesTable)
+      .values({
+        airline_name: input.airline_name,
+        airline_code: input.airline_code,
+        contact_info: input.contact_info
+      })
+      .returning()
+      .execute();
 
-export async function getAirlines(): Promise<Airline[]> {
-  // This is a placeholder declaration! Real code should be implemented here.
-  // The goal of this handler is to fetch all airlines from the database.
-  return Promise.resolve([]);
-}
+    return result[0];
+  } catch (error) {
+    console.error('Airline creation failed:', error);
+    throw error;
+  }
+};
 
-export async function getAirlineById(id: number): Promise<Airline | null> {
-  // This is a placeholder declaration! Real code should be implemented here.
-  // The goal of this handler is to fetch a specific airline by ID.
-  return Promise.resolve(null);
-}
+export const getAirlines = async (): Promise<Airline[]> => {
+  try {
+    const result = await db.select()
+      .from(airlinesTable)
+      .execute();
+
+    return result;
+  } catch (error) {
+    console.error('Failed to fetch airlines:', error);
+    throw error;
+  }
+};
+
+export const getAirlineById = async (id: number): Promise<Airline | null> => {
+  try {
+    const result = await db.select()
+      .from(airlinesTable)
+      .where(eq(airlinesTable.id, id))
+      .execute();
+
+    return result.length > 0 ? result[0] : null;
+  } catch (error) {
+    console.error('Failed to fetch airline by ID:', error);
+    throw error;
+  }
+};
